@@ -47,27 +47,14 @@ WELCOME_TEXT = """
 ✅ TikTok Public Videos
 ✅ Twitter / X Public Media
 ✅ Reddit Public Media
-✅ Many yt-dlp Supported Platforms
+✅ Many Public Media Platforms
 
 ━━━━━━━━━━━━━━━━━━━━
 
-⚡ Strong Support
-⚠ Weak Links Often Work
-❌ Private Content Not Supported
-
-━━━━━━━━━━━━━━━━━━━━
-
-📥 Public Links Only
+⚡ Just Copy → Paste → Download
 🎯 HD Output
 🔥 Smart Download Engine
-
-━━━━━━━━━━━━━━━━━━━━
-
-✨ Send ONE link only per message
-
-⚠ Private accounts not supported
-⚠ Login required content not supported
-⚠ Some Facebook share links may fail
+📦 Public Links Only
 
 ━━━━━━━━━━━━━━━━━━━━
 
@@ -93,33 +80,6 @@ COMPLETE_TEXT = """
 
 👑 Powered by Kamall System 👑
 📡 @KamallRoxzy
-"""
-
-HELP_TEXT = """
-📘 HOW TO USE
-
-1. Send Supported Links⚡[ Acc To Guidelines ]
-
-2. Strong Support:
-✅ Instagram Reel / Post
-✅ YouTube Video / Shorts
-✅ Facebook Public Video
-✅ TikTok Public Video
-
-3. Weak But Often Works:
-⚠ Facebook Share Links
-⚠ fb.watch Links
-⚠ Twitter/X Shared Media
-⚠ Reddit Shared Videos
-
-4. Not Supported:
-❌ Private accounts
-❌ Login required content
-❌ Protected videos
-❌ Expired links
-
-⚠ Best Result:
-Use direct public video links only
 """
 
 # =====================================
@@ -151,7 +111,24 @@ def start(message):
 # =====================================
 @bot.message_handler(func=lambda m: m.text == "📘 Help")
 def help_message(message):
-    bot.reply_to(message, HELP_TEXT)
+    bot.reply_to(
+        message,
+        """
+📘 HOW TO USE
+
+Just send your public link.
+
+Supported:
+✅ Instagram
+✅ YouTube
+✅ Facebook
+✅ TikTok
+✅ Twitter / X
+✅ Reddit
+
+Private / protected content may fail.
+"""
+    )
 
 
 # =====================================
@@ -166,7 +143,7 @@ def ready_message(message):
 
 
 # =====================================
-# CLEAN DOWNLOAD FOLDER
+# CLEAN DOWNLOADS
 # =====================================
 def clear_downloads():
     if os.path.exists("downloads"):
@@ -174,24 +151,31 @@ def clear_downloads():
             shutil.rmtree("downloads")
         except:
             pass
+
     os.makedirs("downloads", exist_ok=True)
 
 
 # =====================================
-# SEND FILE TO USER
+# SEND FILE
 # =====================================
 def send_downloaded_file(chat_id):
     for root, dirs, files in os.walk("downloads"):
         for file in files:
             if file.endswith((
-                ".mp4", ".jpg", ".jpeg",
-                ".png", ".webm", ".mkv"
+                ".mp4",
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".webm",
+                ".mkv"
             )):
                 filepath = os.path.join(root, file)
 
                 with open(filepath, "rb") as f:
                     if file.endswith((
-                        ".mp4", ".webm", ".mkv"
+                        ".mp4",
+                        ".webm",
+                        ".mkv"
                     )):
                         bot.send_video(
                             chat_id,
@@ -223,14 +207,7 @@ def download_media(message):
     if not url.startswith("http"):
         bot.reply_to(
             message,
-            "❌ Please send one valid public social media link."
-        )
-        return
-
-    if " " in url:
-        bot.reply_to(
-            message,
-            "❌ Send only ONE link per message."
+            "❌ Please send a valid public media link."
         )
         return
 
@@ -280,15 +257,16 @@ def download_media(message):
         else:
             ydl_opts = {
                 "outtmpl": "downloads/%(title)s.%(ext)s",
+
                 "format": "bestvideo+bestaudio/best",
                 "merge_output_format": "mp4",
 
-                "retries": 20,
-                "fragment_retries": 20,
-                "extractor_retries": 10,
-                "file_access_retries": 5,
+                "retries": 25,
+                "fragment_retries": 25,
+                "extractor_retries": 15,
+                "file_access_retries": 10,
 
-                "socket_timeout": 90,
+                "socket_timeout": 120,
                 "nocheckcertificate": True,
                 "geo_bypass": True,
                 "noplaylist": True,
@@ -302,7 +280,14 @@ def download_media(message):
 
                 "writethumbnail": False,
                 "writesubtitles": False,
-                "writeautomaticsub": False
+                "writeautomaticsub": False,
+
+                "prefer_insecure": False,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "web"]
+                    }
+                }
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -321,84 +306,10 @@ def download_media(message):
             )
 
     except Exception as e:
-        if "facebook.com" in url:
-            bot.reply_to(
-                message,
-                """
-❌ Facebook link failed
-
-⚠ Facebook share links may work or fail
-
-Supported Best:
-✅ facebook.com/username/videos/123456789/
-
-Weak But Often Works:
-⚠ facebook.com/share/xxxxx/
-⚠ fb.watch/xxxxx/
-
-Not Supported:
-❌ Private videos
-❌ Login required content
-
-⚡ Please send direct public video link
-"""
-            )
-
-        elif "youtube.com" in url or "youtu.be" in url:
-            bot.reply_to(
-                message,
-                """
-❌ YouTube link failed
-
-Possible reasons:
-• Private video
-• Age restriction
-• Login required
-• Region lock
-
-Best Format:
-✅ youtube.com/shorts/VIDEO_ID
-✅ youtu.be/VIDEO_ID
-"""
-            )
-
-        elif "instagram.com" in url:
-            bot.reply_to(
-                message,
-                """
-❌ Instagram link failed
-
-Supported:
-✅ Public Reels
-✅ Public Posts
-
-Not Supported:
-❌ Private accounts
-❌ Restricted content
-"""
-            )
-
-        elif "tiktok.com" in url:
-            bot.reply_to(
-                message,
-                """
-❌ TikTok link failed
-
-Possible reasons:
-• Private video
-• Region restriction
-• Protected content
-
-Best Format:
-✅ tiktok.com/@user/video/123456789
-"""
-            )
-
-        else:
-            bot.reply_to(
-                message,
-                f"❌ Download failed\n\nReason: {str(e)}"
-            )
+        bot.reply_to(
+            message,
+            f"❌ Download failed\n\nReason: {str(e)}"
+        )
 
     finally:
         clear_downloads()
