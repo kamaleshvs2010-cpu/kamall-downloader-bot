@@ -38,19 +38,26 @@ WELCOME_TEXT = """
 
 ━━━━━━━━━━━━━━━━━━━━
 
-🌍 WORLDWIDE SUPPORTED
+🌍 MAXIMUM PUBLIC LINK SUPPORT
 
 ✅ Instagram Reels / Posts / Videos
 ✅ YouTube Videos / Shorts
 ✅ Facebook Public Videos
+✅ Facebook Share Links (many cases)
 ✅ TikTok Public Videos
 ✅ Twitter / X Public Media
 ✅ Reddit Public Media
+✅ Many yt-dlp Supported Platforms
+
+━━━━━━━━━━━━━━━━━━━━
+
+⚡ Strong Support
+⚠ Weak Links Often Work
+❌ Private Content Not Supported
 
 ━━━━━━━━━━━━━━━━━━━━
 
 📥 Public Links Only
-⚡ Fast Processing
 🎯 HD Output
 🔥 Smart Download Engine
 
@@ -60,7 +67,7 @@ WELCOME_TEXT = """
 
 ⚠ Private accounts not supported
 ⚠ Login required content not supported
-⚠ Facebook share links may fail
+⚠ Some Facebook share links may fail
 
 ━━━━━━━━━━━━━━━━━━━━
 
@@ -91,19 +98,25 @@ COMPLETE_TEXT = """
 HELP_TEXT = """
 📘 HOW TO USE
 
-1. Send only ONE link per message
+1. Send Supported Links⚡[ Acc To Guidelines ]
 
-2. Supported:
+2. Strong Support:
 ✅ Instagram Reel / Post
 ✅ YouTube Video / Shorts
 ✅ Facebook Public Video
 ✅ TikTok Public Video
 
-3. Not Supported:
+3. Weak But Often Works:
+⚠ Facebook Share Links
+⚠ fb.watch Links
+⚠ Twitter/X Shared Media
+⚠ Reddit Shared Videos
+
+4. Not Supported:
 ❌ Private accounts
 ❌ Login required content
 ❌ Protected videos
-❌ Broken Facebook share links
+❌ Expired links
 
 ⚠ Best Result:
 Use direct public video links only
@@ -134,7 +147,7 @@ def start(message):
 
 
 # =====================================
-# HELP BUTTON
+# HELP
 # =====================================
 @bot.message_handler(func=lambda m: m.text == "📘 Help")
 def help_message(message):
@@ -142,7 +155,7 @@ def help_message(message):
 
 
 # =====================================
-# START DOWNLOAD BUTTON
+# START BUTTON
 # =====================================
 @bot.message_handler(func=lambda m: m.text == "🚀 Start Download")
 def ready_message(message):
@@ -165,7 +178,7 @@ def clear_downloads():
 
 
 # =====================================
-# SEND FILE
+# SEND FILE TO USER
 # =====================================
 def send_downloaded_file(chat_id):
     for root, dirs, files in os.walk("downloads"):
@@ -177,7 +190,9 @@ def send_downloaded_file(chat_id):
                 filepath = os.path.join(root, file)
 
                 with open(filepath, "rb") as f:
-                    if file.endswith((".mp4", ".webm", ".mkv")):
+                    if file.endswith((
+                        ".mp4", ".webm", ".mkv"
+                    )):
                         bot.send_video(
                             chat_id,
                             f,
@@ -202,11 +217,9 @@ def send_downloaded_file(chat_id):
 def download_media(message):
     url = message.text.strip()
 
-    # ignore button text
     if url in ["🚀 Start Download", "📘 Help"]:
         return
 
-    # basic validation
     if not url.startswith("http"):
         bot.reply_to(
             message,
@@ -269,21 +282,34 @@ def download_media(message):
                 "outtmpl": "downloads/%(title)s.%(ext)s",
                 "format": "bestvideo+bestaudio/best",
                 "merge_output_format": "mp4",
-                "retries": 15,
-                "fragment_retries": 15,
-                "extractor_retries": 5,
+
+                "retries": 20,
+                "fragment_retries": 20,
+                "extractor_retries": 10,
                 "file_access_retries": 5,
-                "socket_timeout": 60,
+
+                "socket_timeout": 90,
                 "nocheckcertificate": True,
                 "geo_bypass": True,
                 "noplaylist": True,
                 "quiet": True,
+
                 "ignoreerrors": False,
-                "http_chunk_size": 10485760
+                "http_chunk_size": 10485760,
+                "extract_flat": False,
+                "force_generic_extractor": False,
+                "concurrent_fragment_downloads": 1,
+
+                "writethumbnail": False,
+                "writesubtitles": False,
+                "writeautomaticsub": False
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.extract_info(url, download=True)
+                ydl.extract_info(
+                    url,
+                    download=True
+                )
 
         # =====================================
         # SEND RESULT
@@ -301,13 +327,18 @@ def download_media(message):
                 """
 ❌ Facebook link failed
 
-⚠ Weak share links often fail
+⚠ Facebook share links may work or fail
 
-❌ Weak Example:
-facebook.com/share/xxxx/
+Supported Best:
+✅ facebook.com/username/videos/123456789/
 
-✅ Better Format:
-facebook.com/username/videos/123456789/
+Weak But Often Works:
+⚠ facebook.com/share/xxxxx/
+⚠ fb.watch/xxxxx/
+
+Not Supported:
+❌ Private videos
+❌ Login required content
 
 ⚡ Please send direct public video link
 """
@@ -325,10 +356,9 @@ Possible reasons:
 • Login required
 • Region lock
 
-✅ Better Format:
-youtube.com/shorts/VIDEO_ID
-or
-youtu.be/VIDEO_ID
+Best Format:
+✅ youtube.com/shorts/VIDEO_ID
+✅ youtu.be/VIDEO_ID
 """
             )
 
@@ -359,8 +389,8 @@ Possible reasons:
 • Region restriction
 • Protected content
 
-✅ Better Format:
-tiktok.com/@user/video/123456789
+Best Format:
+✅ tiktok.com/@user/video/123456789
 """
             )
 
@@ -375,7 +405,7 @@ tiktok.com/@user/video/123456789
 
 
 # =====================================
-# RUN
+# RUN BOT
 # =====================================
 print("⚡ KAMAL SYSTEM RUNNING...")
 bot.infinity_polling()
