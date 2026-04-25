@@ -2,7 +2,7 @@ import telebot
 import instaloader
 import os
 
-TOKEN = "8210168750:AAEHhEWxOlS9nnE9iDg0PgRasRUX1rw1Ja4"
+TOKEN = TOKEN = os.getenv("BOT_TOKEN")
 
 bot = telebot.TeleBot(TOKEN)
 loader = instaloader.Instaloader(
