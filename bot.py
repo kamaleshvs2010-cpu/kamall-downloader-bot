@@ -9,7 +9,7 @@ from queue import Queue
 from telebot import types
 
 # ========= CONFIG =========
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("8210168750:AAH8NhjEoJHmI3LmxnumSi4QewW62aMTyBc")
 
 if not BOT_TOKEN:
     print("❌ BOT_TOKEN not found")
@@ -43,7 +43,6 @@ def worker():
         chat_id = msg.chat.id
 
         try:
-            # ========= STATUS UI =========
             status = bot.send_message(
                 chat_id,
                 """
@@ -87,7 +86,6 @@ def worker():
                     shortcode
                 )
 
-                # Single image
                 if not post.is_video and post.typename != "GraphSidecar":
                     bot.send_photo(
                         chat_id,
@@ -106,7 +104,6 @@ def worker():
 """
                     )
 
-                # Single video
                 elif post.is_video and post.typename != "GraphSidecar":
                     bot.send_video(
                         chat_id,
@@ -125,7 +122,6 @@ def worker():
 """
                     )
 
-                # Carousel
                 else:
                     for node in post.get_sidecar_nodes():
                         if node.is_video:
@@ -155,7 +151,7 @@ def worker():
 """
                     )
 
-            # ========= ALL OTHER PLATFORMS =========
+            # ========= YOUTUBE / FACEBOOK / TIKTOK / OTHERS =========
             else:
                 ydl_opts = {
                     "format": "bestvideo+bestaudio/best",
@@ -163,12 +159,12 @@ def worker():
 
                     "outtmpl": "video.%(ext)s",
 
-                    "retries": 20,
-                    "fragment_retries": 20,
-                    "extractor_retries": 10,
-                    "file_access_retries": 5,
+                    "retries": 30,
+                    "fragment_retries": 30,
+                    "extractor_retries": 20,
+                    "file_access_retries": 10,
 
-                    "socket_timeout": 90,
+                    "socket_timeout": 120,
                     "nocheckcertificate": True,
                     "geo_bypass": True,
                     "noplaylist": True,
@@ -183,15 +179,22 @@ def worker():
 
                     "extractor_args": {
                         "youtube": {
-                            "player_client": ["android", "web"]
+                            "player_client": [
+                                "android",
+                                "web",
+                                "tv_embedded"
+                            ]
                         }
-                    }
+                    },
+
+                    "writethumbnail": False,
+                    "writesubtitles": False,
+                    "writeautomaticsub": False
                 }
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.extract_info(link, download=True)
 
-                # Detect actual downloaded file
                 video_file = None
 
                 for f in os.listdir():
@@ -218,7 +221,6 @@ def worker():
                     task_queue.task_done()
                     continue
 
-                # Retry upload
                 for i in range(3):
                     try:
                         with open(video_file, "rb") as v:
@@ -273,7 +275,7 @@ for _ in range(2):
         daemon=True
     ).start()
 
-# ========= START BUTTON UI =========
+# ========= START =========
 @bot.message_handler(commands=['start'])
 def start(msg):
     markup = types.ReplyKeyboardMarkup(
@@ -313,7 +315,7 @@ def start(msg):
         reply_markup=markup
     )
 
-# ========= HELP BUTTON =========
+# ========= HELP =========
 @bot.message_handler(func=lambda m: m.text == "📘 Help")
 def help_menu(msg):
     bot.reply_to(
@@ -334,7 +336,7 @@ def help_menu(msg):
 """
     )
 
-# ========= START DOWNLOAD BUTTON =========
+# ========= START DOWNLOAD =========
 @bot.message_handler(func=lambda m: m.text == "🚀 Start Download")
 def ready(msg):
     bot.reply_to(
