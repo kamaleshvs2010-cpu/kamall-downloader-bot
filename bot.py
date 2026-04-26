@@ -8,11 +8,6 @@ from telebot import types
 # CONFIG
 # =====================================
 
-# CHANGE ONLY THIS:
-# In Railway Variables:
-# KEY   = BOT_TOKEN
-# VALUE = your real Telegram bot token
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
@@ -256,7 +251,7 @@ def handle(msg):
 
     except Exception as e:
         bot.reply_to(
-            msg.chat.id,
+            msg,
             f"❌ Error:\n{str(e)}"
         )
 
