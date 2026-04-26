@@ -1,151 +1,225 @@
 import telebot
 import instaloader
 import yt_dlp
+import re
+import threading
+import time
 import os
+from queue import Queue
 
-TOKEN = os.getenv("BOT_TOKEN")
+# ========= CONFIG =======
+BOT_TOKEN = os.getenv("8210168750:AAH8NhjEoJHmI3LmxnumSi4QewW62aMTyBc")
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode="Markdown")
 
-bot = telebot.TeleBot(TOKEN)
-
-loader = instaloader.Instaloader(
-    dirname_pattern="downloads",
-    save_metadata=False,
+# INSTAGRAM FIX
+L = instaloader.Instaloader(
+    download_pictures=False,
+    download_videos=True,
     download_video_thumbnails=False,
-    post_metadata_txt_pattern=""
+    save_metadata=False,
+    quiet=True
 )
 
-WELCOME_TEXT = """
-◤━━━━━━━━━━━━━━━━━━━━◥
-  ⚡ KAMAL SYSTEM ⚡
-◣━━━━━━━━━━━━━━━━━━━━◢
+# ========= HELPERS =========
+def extract_links(text):
+    return re.findall(r'https?://[^\s]+', text)
 
-🚀 Premium Downloader System
+def get_shortcode(url):
+    m = re.search(r"/(reel|p|tv)/([^/?]+)", url)
+    return m.group(2) if m else None
 
-━━━━━━━━━━━━━━━━━━━━
+# ========= QUEUE =========
+task_queue = Queue()
 
-📥 Instagram • YouTube • Facebook • TikTok
-🎬 Reels • Posts • Shorts • Videos • HD Media
+def worker():
+    while True:
+        msg, link = task_queue.get()
+        chat_id = msg.chat.id
 
-⚡ Lightning Fast Processing
-🎯 Crystal Clear Output
-🔥 Smart Download Engine
-📦 All Platform Support
-
-━━━━━━━━━━━━━━━━━━━━
-
-✨ Drop your link — Let the engine do the rest
-
-👑 Powered by Kamall System 👑
-📡 @KamallRoxzy
+        try:
+            # 🔥 UI SAME
+            status = bot.send_message(chat_id,
 """
-
-COMPLETE_TEXT = """
-╔════════════════════════╗
-║   ⚡ READY FOR USE ⚡   ║
-╚════════════════════════╝
-
-⚡ Your File Is Successfully Delivered
-🚀 Fast Process • Zero Delay
-💎 Premium Output Activated
+⚡ *SYSTEM ACTIVE*
 
 ━━━━━━━━━━━━━━
+⏳ Initializing engine...
+""")
 
-🔁 Send Next Link
-⚡ Ready For Next Download
+            for f in [
+                "⚡ Preparing...",
+                "⚡ Fetching data...",
+                "⚡ Processing...",
+                "⚡ Finalizing..."
+            ]:
+                try:
+                    bot.edit_message_text(f, chat_id, status.message_id)
+                    time.sleep(0.3)
+                except:
+                    pass
+
+            # ========= INSTAGRAM =========
+            if "instagram.com" in link:
+                shortcode = get_shortcode(link)
+
+                if not shortcode:
+                    bot.send_message(chat_id, "❌ Invalid Instagram link")
+                    task_queue.task_done()
+                    continue
+
+                post = instaloader.Post.from_shortcode(L.context, shortcode)
+
+                # IMAGE
+                if not post.is_video and post.typename != "GraphSidecar":
+                    bot.send_photo(chat_id, post.url, caption="""
+╔══════════════════════╗
+║     ✅ COMPLETED      ║
+╚══════════════════════╝
+
+⚡ File Ready  
+🚀 Delivered Instantly  
 
 ━━━━━━━━━━━━━━
-
-👑 Powered by Kamall System 👑
+👑 *Kamall Downloader*
 📡 @KamallRoxzy
-"""
+""")
 
+                # VIDEO
+                elif post.is_video and post.typename != "GraphSidecar":
+                    bot.send_video(chat_id, post.video_url, caption="""
+╔══════════════════════╗
+║     ✅ COMPLETED      ║
+╚══════════════════════╝
 
+⚡ File Ready  
+🚀 Delivered Instantly  
+
+━━━━━━━━━━━━━━
+👑 *Kamall Downloader*
+📡 @KamallRoxzy
+""")
+
+                # CAROUSEL
+                else:
+                    for node in post.get_sidecar_nodes():
+                        if node.is_video:
+                            bot.send_video(chat_id, node.video_url)
+                        else:
+                            bot.send_photo(chat_id, node.display_url)
+
+                    bot.send_message(chat_id, """
+╔══════════════════════╗
+║     ✅ COMPLETED      ║
+╚══════════════════════╝
+
+⚡ File Ready  
+🚀 Delivered Instantly  
+
+━━━━━━━━━━━━━━
+👑 *Kamall Downloader*
+📡 @KamallRoxzy
+""")
+
+            # ========= ALL OTHER PLATFORMS =========
+            else:
+                ydl_opts = {
+                    'format': 'best[ext=mp4]',
+                    'outtmpl': 'video.mp4',
+                    'quiet': True,
+                    'retries': 5,
+                    'fragment_retries': 5,
+                    'socket_timeout': 30,
+                    'nocheckcertificate': True,
+                    'ignoreerrors': True,
+                    'no_warnings': True
+                }
+
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([link])
+
+                if not os.path.exists("video.mp4"):
+                    bot.send_message(chat_id, "❌ Download failed")
+                    task_queue.task_done()
+                    continue
+
+                size = os.path.getsize("video.mp4")
+
+                if size > 50 * 1024 * 1024:
+                    bot.send_message(chat_id, "❌ File too large")
+                    os.remove("video.mp4")
+                    task_queue.task_done()
+                    continue
+
+                # RETRY UPLOAD
+                for i in range(3):
+                    try:
+                        with open("video.mp4", "rb") as v:
+                            bot.send_video(chat_id, v, timeout=120, caption="""
+╔══════════════════════╗
+║     ✅ COMPLETED      ║
+╚══════════════════════╝
+
+⚡ File Ready  
+🚀 Delivered Instantly  
+
+━━━━━━━━━━━━━━
+👑 *Kamall Downloader*
+📡 @KamallRoxzy
+""")
+                        break
+                    except:
+                        if i == 2:
+                            bot.send_message(chat_id, "❌ Upload failed")
+
+                os.remove("video.mp4")
+
+            bot.delete_message(chat_id, status.message_id)
+
+        except Exception as e:
+            bot.send_message(chat_id, f"❌ Error:\n{e}")
+
+        task_queue.task_done()
+
+# START WORKERS
+for _ in range(2):
+    threading.Thread(target=worker, daemon=True).start()
+
+# ========= START =========
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, WELCOME_TEXT)
+def start(msg):
+    text = """
+╔══════════════════════╗
+║   ⚡ KAMALL SYSTEM ⚡   ║
+╚══════════════════════╝
 
+🚀 *Ultimate Downloader Engine*
 
-@bot.message_handler(func=lambda message: True)
-def download_media(message):
-    url = message.text.strip()
+━━━━━━━━━━━━━━━━━━━━━━━
 
-    if not url.startswith("http"):
-        bot.reply_to(message, "❌ Please send a valid social media link.")
+📥 Instagram • YouTube • Facebook • TikTok • Twitter • Reddit • Vimeo  
+⚡ Ultra Fast Processing  
+🎯 Clean HD Output  
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ _Just send a link and watch the magic_
+
+👑 @KamallRoxzy
+"""
+    bot.send_message(msg.chat.id, text)
+
+# ========= MAIN =========
+@bot.message_handler(func=lambda m: True)
+def handle(msg):
+    links = extract_links(msg.text)
+
+    if not links:
+        bot.reply_to(msg, "❌ Send valid link")
         return
 
-    bot.reply_to(message, "⚡ Processing your link...")
+    for link in links:
+        task_queue.put((msg, link))
 
-    try:
-        folder = "downloads"
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-
-        # Instagram direct support
-        if "instagram.com" in url:
-            if "/p/" in url:
-                shortcode = url.split("/p/")[1].split("/")[0]
-            elif "/reel/" in url:
-                shortcode = url.split("/reel/")[1].split("/")[0]
-            else:
-                shortcode = None
-
-            if not shortcode:
-                bot.reply_to(message, "❌ Invalid Instagram link.")
-                return
-
-            post = instaloader.Post.from_shortcode(
-                loader.context,
-                shortcode
-            )
-
-            loader.download_post(post, target="downloads")
-
-        # Other platforms via yt-dlp
-        else:
-            ydl_opts = {
-                "outtmpl": "downloads/%(title)s.%(ext)s",
-                "format": "best",
-                "noplaylist": True,
-                "quiet": True
-            }
-
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.extract_info(url, download=True)
-
-        sent = False
-
-        for root, dirs, files in os.walk("downloads"):
-            for file in files:
-                if file.endswith((".mp4", ".jpg", ".jpeg", ".png", ".webm", ".mkv")):
-                    filepath = os.path.join(root, file)
-
-                    with open(filepath, "rb") as f:
-                        if file.endswith((".mp4", ".webm", ".mkv")):
-                            bot.send_video(
-                                message.chat.id,
-                                f,
-                                caption=COMPLETE_TEXT
-                            )
-                        else:
-                            bot.send_photo(
-                                message.chat.id,
-                                f,
-                                caption=COMPLETE_TEXT
-                            )
-
-                    os.remove(filepath)
-                    sent = True
-                    break
-
-            if sent:
-                break
-
-        if not sent:
-            bot.reply_to(message, "❌ File not found.")
-
-    except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
-
-
-print("⚡ KAMAL SYSTEM RUNNING...")
+# ========= RUN =========
+print("⚡ PREMIUM BOT RUNNING...")
 bot.infinity_polling()
