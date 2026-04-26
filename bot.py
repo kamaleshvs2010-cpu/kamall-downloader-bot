@@ -4,9 +4,9 @@ import re
 import os
 from telebot import types
 
-# =====================================
+# ================================
 # CONFIG
-# =====================================
+# ================================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -16,9 +16,9 @@ if not BOT_TOKEN:
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="Markdown")
 
-# =====================================
+# ================================
 # INSTAGRAM LOADER
-# =====================================
+# ================================
 
 L = instaloader.Instaloader(
     download_pictures=True,
@@ -30,27 +30,28 @@ L = instaloader.Instaloader(
     quiet=True
 )
 
-# =====================================
+# IMPORTANT:
+# Username must be same as Termux successful login account
+L.load_session_from_file("akaay0076")
+
+# ================================
 # HELPER
-# =====================================
+# ================================
 
 def get_shortcode(url):
-    match = re.search(r"/(reel|p|tv)/([^/?]+)", url)
+    match = re.search(r"/(reel|p|tv)/([^/?]+)/", url)
     return match.group(2) if match else None
 
-
-# =====================================
+# ================================
 # UI TEXT
-# =====================================
+# ================================
 
 WELCOME_TEXT = """
-╔════════════════════════════╗
-║ 👑 ⚡ INSTA DOWNLOADER ⚡ 👑 ║
-╚════════════════════════════╝
+👑⚡ INSTA DOWNLOADER ⚡👑
 
 🔥 *PREMIUM INSTAGRAM DOWNLOADER*
 
-━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━
 
 📥 High Quality Instagram Downloader
 
@@ -65,59 +66,47 @@ WELCOME_TEXT = """
 💎 Smooth User Experience
 🔒 Safe & Trusted Service
 
-━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━
 
 ✨ Just Copy → Paste → Download
 
-👑 Powered by Kamall System 👑
-📡 @KamallRoxzy
+👑 Powered by Kamali System 👑
 """
 
 COMPLETE_TEXT = """
-╔════════════════════════════╗
-║      ✅ DOWNLOAD DONE      ║
-╚════════════════════════════╝
+✅ *DOWNLOAD DONE*
 
-⚡ Your File Is Successfully Delivered
-🚀 Original Instagram Quality
+⚡ Your file is successfully delivered
+🎯 Original Instagram Quality
 💎 Premium Output Activated
 
 ━━━━━━━━━━━━━━
 
-🔁 Send Next Instagram Link
+📩 Send Next Instagram Link
 ⚡ Ready For Next Download
 
-━━━━━━━━━━━━━━
-
-👑 Powered by Kamall System 👑
-📡 @KamallRoxzy
+👑 Powered by Kamali System 👑
 """
 
 HELP_TEXT = """
 📘 *SUPPORTED INSTAGRAM LINKS*
 
-✅ Instagram Reel
+✅ Instagram Reel  
 https://www.instagram.com/reel/ABC123/
 
-✅ Instagram Post
+✅ Instagram Post  
 https://www.instagram.com/p/ABC123/
 
-✅ Instagram Video
+✅ Instagram Video  
 https://www.instagram.com/tv/ABC123/
 
-✅ Carousel Post
-https://www.instagram.com/p/ABC123/
-
-━━━━━━━━━━━━━━
-
-⚡ Public Instagram links only
-
-👑 Powered by Kamall System 👑
+⚠ Public links only
+⚠ Private account links not supported
 """
 
-# =====================================
+# ================================
 # BUTTONS
-# =====================================
+# ================================
 
 def main_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -130,10 +119,9 @@ def main_keyboard():
 
     return markup
 
-
-# =====================================
+# ================================
 # START
-# =====================================
+# ================================
 
 @bot.message_handler(commands=["start"])
 def start(msg):
@@ -143,10 +131,9 @@ def start(msg):
         reply_markup=main_keyboard()
     )
 
-
-# =====================================
+# ================================
 # HELP
-# =====================================
+# ================================
 
 @bot.message_handler(func=lambda m: m.text == "📘 Help")
 def help_menu(msg):
@@ -155,10 +142,9 @@ def help_menu(msg):
         HELP_TEXT
     )
 
-
-# =====================================
-# START DOWNLOAD
-# =====================================
+# ================================
+# START DOWNLOAD BUTTON
+# ================================
 
 @bot.message_handler(func=lambda m: m.text == "🚀 Start Download")
 def ready(msg):
@@ -167,10 +153,9 @@ def ready(msg):
         "⚡ Send your Instagram public link now."
     )
 
-
-# =====================================
+# ================================
 # MAIN DOWNLOAD ENGINE
-# =====================================
+# ================================
 
 @bot.message_handler(func=lambda m: True)
 def handle(msg):
@@ -255,10 +240,9 @@ def handle(msg):
             f"❌ Error:\n{str(e)}"
         )
 
-
-# =====================================
+# ================================
 # RUN
-# =====================================
+# ================================
 
 print("⚡ INSTA DOWNLOADER RUNNING...")
 bot.infinity_polling()
