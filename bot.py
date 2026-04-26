@@ -7,7 +7,7 @@ from telebot import types
 # =====================================
 # CONFIG
 # =====================================
-BOT_TOKEN = os.getenv("8210168750:AAH8NhjEoJHmI3LmxnumSi4QewW62aMTyBc")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
     print("❌ BOT_TOKEN not found in Railway Variables")
@@ -37,14 +37,14 @@ def get_shortcode(url):
 
 
 # =====================================
-# MAIN UI TEXT
+# UI TEXTS
 # =====================================
 WELCOME_TEXT = """
 ╔════════════════════════════╗
-║    👑 ⚡ KAMAL SYSTEM ⚡ 👑    ║
+║ 👑 ⚡ INSTA DOWNLOADER ⚡ 👑 ║
 ╚════════════════════════════╝
 
-🔥 *PREMIUM INSTA DOWNLOADER*
+🔥 *PREMIUM INSTAGRAM DOWNLOADER*
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -60,7 +60,6 @@ WELCOME_TEXT = """
 🚀 Stable Premium Engine
 💎 Smooth User Experience
 🔒 Safe & Trusted Service
-🌍 Fast Worldwide Access
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -107,20 +106,17 @@ https://www.instagram.com/p/ABC123/
 
 ━━━━━━━━━━━━━━
 
-⚡ Send your Instagram public link
+⚡ Send only public Instagram links
 for fast premium delivery
 
 👑 Powered by Kamall System 👑
 """
 
-
 # =====================================
 # BUTTONS
 # =====================================
 def main_keyboard():
-    markup = types.ReplyKeyboardMarkup(
-        resize_keyboard=True
-    )
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
     btn1 = types.KeyboardButton("🚀 Start Download")
     btn2 = types.KeyboardButton("📘 Help")
@@ -144,7 +140,7 @@ def start(msg):
 
 
 # =====================================
-# HELP BUTTON
+# HELP
 # =====================================
 @bot.message_handler(func=lambda m: m.text == "📘 Help")
 def help_menu(msg):
@@ -155,7 +151,7 @@ def help_menu(msg):
 
 
 # =====================================
-# START DOWNLOAD BUTTON
+# START DOWNLOAD
 # =====================================
 @bot.message_handler(func=lambda m: m.text == "🚀 Start Download")
 def ready(msg):
@@ -198,7 +194,7 @@ def handle(msg):
 ⚡ *SYSTEM ACTIVE*
 
 ━━━━━━━━━━━━━━
-⏳ Initializing Premium Engine...
+⏳ Downloading Instagram media...
 """
         )
 
@@ -207,9 +203,7 @@ def handle(msg):
             shortcode
         )
 
-        # =====================================
-        # SINGLE IMAGE
-        # =====================================
+        # Single image
         if not post.is_video and post.typename != "GraphSidecar":
             bot.send_photo(
                 msg.chat.id,
@@ -217,9 +211,7 @@ def handle(msg):
                 caption=COMPLETE_TEXT
             )
 
-        # =====================================
-        # SINGLE VIDEO
-        # =====================================
+        # Single video
         elif post.is_video and post.typename != "GraphSidecar":
             bot.send_video(
                 msg.chat.id,
@@ -227,9 +219,7 @@ def handle(msg):
                 caption=COMPLETE_TEXT
             )
 
-        # =====================================
-        # CAROUSEL
-        # =====================================
+        # Carousel
         else:
             for node in post.get_sidecar_nodes():
                 if node.is_video:
@@ -266,5 +256,5 @@ def handle(msg):
 # =====================================
 # RUN BOT
 # =====================================
-print("⚡ KAMAL SYSTEM RUNNING...")
+print("⚡ INSTA DOWNLOADER RUNNING...")
 bot.infinity_polling()
