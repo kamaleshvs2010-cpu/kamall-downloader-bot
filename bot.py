@@ -32,7 +32,15 @@ L = instaloader.Instaloader(
 
 # IMPORTANT:
 # Username must be same as Termux successful login account
-L.load_session_from_file("akaay0076")
+L = instaloader.Instaloader(
+    download_pictures=True,
+    download_videos=True,
+    download_video_thumbnails=False,
+    save_metadata=False,
+    compress_json=False,
+    post_metadata_txt_pattern="",
+    quiet=True
+)
 
 # ================================
 # HELPER
