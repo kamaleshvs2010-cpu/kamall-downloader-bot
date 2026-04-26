@@ -7,7 +7,7 @@ from telebot import types
 # =====================================
 # CONFIG
 # =====================================
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("8210168750:AAH8NhjEoJHmI3LmxnumSi4QewW62aMTyBc")
 
 if not BOT_TOKEN:
     print("❌ BOT_TOKEN not found in Railway Variables")
