@@ -2,11 +2,16 @@ import telebot
 import instaloader
 import re
 import os
-from telebot import types
+import time
+import shutil
 
-# ================================
-# CONFIG
-# ================================
+# =====================================
+# CONFIG FOR RAILWAY
+# Railway → Variables
+#
+# KEY   = BOT_TOKEN
+# VALUE = your real Telegram bot token
+# =====================================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -16,241 +21,174 @@ if not BOT_TOKEN:
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="Markdown")
 
-# ================================
+# =====================================
 # INSTAGRAM LOADER
-# ================================
+# =====================================
 
 L = instaloader.Instaloader(
-    download_pictures=True,
-    download_videos=True,
-    download_video_thumbnails=False,
     save_metadata=False,
-    compress_json=False,
+    download_comments=False,
     post_metadata_txt_pattern="",
+    download_video_thumbnails=False,
     quiet=True
 )
 
-# IMPORTANT:
-# Username must be same as Termux successful login account
-L = instaloader.Instaloader(
-    download_pictures=True,
-    download_videos=True,
-    download_video_thumbnails=False,
-    save_metadata=False,
-    compress_json=False,
-    post_metadata_txt_pattern="",
-    quiet=True
-)
+# =====================================
+# DOWNLOAD FUNCTION
+# =====================================
 
-# ================================
-# HELPER
-# ================================
-
-def get_shortcode(url):
-    match = re.search(r"/(reel|p|tv)/([^/?]+)/", url)
-    return match.group(2) if match else None
-
-# ================================
-# UI TEXT
-# ================================
-
-WELCOME_TEXT = """
-👑⚡ INSTA DOWNLOADER ⚡👑
-
-🔥 *PREMIUM INSTAGRAM DOWNLOADER*
-
-━━━━━━━━━━━━━━
-
-📥 High Quality Instagram Downloader
-
-✅ Reels Download
-✅ Posts Download
-✅ Videos Download
-✅ Carousel Download
-
-🎯 Original HD Quality
-⚡ Ultra Fast Delivery
-🚀 Stable Premium Engine
-💎 Smooth User Experience
-🔒 Safe & Trusted Service
-
-━━━━━━━━━━━━━━
-
-✨ Just Copy → Paste → Download
-
-👑 Powered by Kamali System 👑
-"""
-
-COMPLETE_TEXT = """
-✅ *DOWNLOAD DONE*
-
-⚡ Your file is successfully delivered
-🎯 Original Instagram Quality
-💎 Premium Output Activated
-
-━━━━━━━━━━━━━━
-
-📩 Send Next Instagram Link
-⚡ Ready For Next Download
-
-👑 Powered by Kamali System 👑
-"""
-
-HELP_TEXT = """
-📘 *SUPPORTED INSTAGRAM LINKS*
-
-✅ Instagram Reel  
-https://www.instagram.com/reel/ABC123/
-
-✅ Instagram Post  
-https://www.instagram.com/p/ABC123/
-
-✅ Instagram Video  
-https://www.instagram.com/tv/ABC123/
-
-⚠ Public links only
-⚠ Private account links not supported
-"""
-
-# ================================
-# BUTTONS
-# ================================
-
-def main_keyboard():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
-    btn1 = types.KeyboardButton("🚀 Start Download")
-    btn2 = types.KeyboardButton("📘 Help")
-
-    markup.add(btn1)
-    markup.add(btn2)
-
-    return markup
-
-# ================================
-# START
-# ================================
-
-@bot.message_handler(commands=["start"])
-def start(msg):
-    bot.send_message(
-        msg.chat.id,
-        WELCOME_TEXT,
-        reply_markup=main_keyboard()
-    )
-
-# ================================
-# HELP
-# ================================
-
-@bot.message_handler(func=lambda m: m.text == "📘 Help")
-def help_menu(msg):
-    bot.reply_to(
-        msg,
-        HELP_TEXT
-    )
-
-# ================================
-# START DOWNLOAD BUTTON
-# ================================
-
-@bot.message_handler(func=lambda m: m.text == "🚀 Start Download")
-def ready(msg):
-    bot.reply_to(
-        msg,
-        "⚡ Send your Instagram public link now."
-    )
-
-# ================================
-# MAIN DOWNLOAD ENGINE
-# ================================
-
-@bot.message_handler(func=lambda m: True)
-def handle(msg):
-    if msg.text in ["🚀 Start Download", "📘 Help"]:
-        return
-
-    url = msg.text.strip()
-
-    if "instagram.com" not in url:
-        bot.reply_to(
-            msg,
-            "❌ Send valid Instagram Reel/Post link only."
-        )
-        return
-
-    shortcode = get_shortcode(url)
-
-    if not shortcode:
-        bot.reply_to(
-            msg,
-            "❌ Invalid Instagram link."
-        )
-        return
-
+def download_reel(url):
     try:
-        status = bot.send_message(
-            msg.chat.id,
-            "⚡ Downloading Instagram media..."
-        )
+        match = re.search(r"/reel/([^/]+)/", url)
+
+        if not match:
+            return None
+
+        shortcode = match.group(1)
 
         post = instaloader.Post.from_shortcode(
             L.context,
             shortcode
         )
 
-        # Single Image
-        if not post.is_video and post.typename != "GraphSidecar":
-            bot.send_photo(
-                msg.chat.id,
-                post.url,
-                caption=COMPLETE_TEXT
-            )
+        L.download_post(post, target=shortcode)
 
-        # Single Video
-        elif post.is_video and post.typename != "GraphSidecar":
-            bot.send_video(
-                msg.chat.id,
-                post.video_url,
-                caption=COMPLETE_TEXT
-            )
+        if os.path.exists(shortcode):
+            for file in os.listdir(shortcode):
+                if file.endswith(".mp4"):
+                    return os.path.join(shortcode, file)
 
-        # Carousel
-        else:
-            for node in post.get_sidecar_nodes():
-                if node.is_video:
-                    bot.send_video(
-                        msg.chat.id,
-                        node.video_url
-                    )
-                else:
-                    bot.send_photo(
-                        msg.chat.id,
-                        node.display_url
-                    )
+        return None
 
-            bot.send_message(
-                msg.chat.id,
-                COMPLETE_TEXT
-            )
+    except Exception as e:
+        print(f"Download Error: {e}")
+        return None
 
+
+# =====================================
+# START / HELP
+# =====================================
+
+@bot.message_handler(commands=["start", "help"])
+def send_welcome(message):
+    welcome_text = """
+╔══════════════════════════════════════╗
+║   👑⚡ KAMALL INSTA DOWNLOADER ⚡👑   ║
+╠══════════════════════════════════════╣
+║  📥 Send Any Instagram Reel URL      ║
+║  🚀 Instant High Quality Download    ║
+║  🎬 HD Reel Video Fast Delivery      ║
+║  🔥 Premium • Safe • Trusted         ║
+║  💎 Smooth & Powerful Experience     ║
+╠══════════════════════════════════════╣
+║  📌 Example:                         ║
+║  https://www.instagram.com/reel/xxx  ║
+╠══════════════════════════════════════╣
+║      👑 Powered by Kamall 👑         ║
+║        📡 @KamallRoxzy               ║
+╚══════════════════════════════════════╝
+"""
+
+    bot.reply_to(message, welcome_text)
+
+
+# =====================================
+# MAIN HANDLER
+# =====================================
+
+@bot.message_handler(func=lambda msg: True)
+def handle_message(msg):
+    url = msg.text.strip()
+
+    if "instagram.com" not in url:
+        bot.reply_to(
+            msg,
+            "❌ Please send a valid Instagram Reel link."
+        )
+        return
+
+    processing_msg = bot.reply_to(
+        msg,
+        "⏳ Processing your reel...\nPlease wait..."
+    )
+
+    file_path = download_reel(url)
+
+    if file_path:
         try:
-            bot.delete_message(
-                msg.chat.id,
-                status.message_id
+            with open(file_path, "rb") as video:
+                bot.send_video(
+                    msg.chat.id,
+                    video,
+                    caption="""
+✅ Download Complete!
+
+📹 Reel downloaded successfully
+💫 Enjoy your video!
+
+👑 Powered by Kamall
+📡 @KamallRoxzy
+"""
+                )
+
+            try:
+                bot.delete_message(
+                    msg.chat.id,
+                    processing_msg.message_id
+                )
+            except:
+                pass
+
+        except Exception as e:
+            print(f"Upload Error: {e}")
+            bot.reply_to(
+                msg,
+                "❌ Upload failed. Try again."
             )
+
+        # Cleanup
+        try:
+            os.remove(file_path)
+
+            match = re.search(r"/reel/([^/]+)/", url)
+            if match:
+                shortcode = match.group(1)
+
+                if os.path.exists(shortcode):
+                    shutil.rmtree(shortcode)
+
         except:
             pass
 
-    except Exception as e:
+    else:
         bot.reply_to(
             msg,
-            f"❌ Error:\n{str(e)}"
+            """
+❌ Download Failed
+
+Possible reasons:
+• Private account
+• Invalid reel link
+• Instagram blocked request
+• Temporary issue
+
+Try again later.
+"""
         )
 
-# ================================
-# RUN
-# ================================
 
-print("⚡ INSTA DOWNLOADER RUNNING...")
-bot.infinity_polling()
+# =====================================
+# START BOT
+# =====================================
+
+print("⚡ KAMALL INSTA DOWNLOADER RUNNING...")
+
+while True:
+    try:
+        bot.infinity_polling(
+            timeout=60,
+            long_polling_timeout=30
+        )
+    except Exception as e:
+        print(f"Restarting bot due to error: {e}")
+        time.sleep(5)
