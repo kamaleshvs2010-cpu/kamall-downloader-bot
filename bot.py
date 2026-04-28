@@ -7,11 +7,11 @@ import shutil
 
 # =====================================
 # CONFIG FOR RAILWAY
+# =====================================
+
 # Railway → Variables
-#
 # KEY   = BOT_TOKEN
 # VALUE = your real Telegram bot token
-# =====================================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
